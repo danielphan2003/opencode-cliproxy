@@ -1,0 +1,22 @@
+{
+  "name": "opencode-cliproxy",
+  "description": "OpenCode plugin that registers every model a CLIProxyAPI endpoint lists",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "bun test",
+    "test:unit": "bun test test/unit.test.ts",
+    "check": "bun run typecheck && bun test"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.2.5",
+    "@types/bun": "latest",
+    "effect": "4.0.6",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": "2.2.5",
+    "effect": "4.0.6"
+  }
+}
