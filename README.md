@@ -28,7 +28,7 @@ nothing to install: no `git clone`, no `npm install`, no `node_modules`.
 
 2. List it in `~/.config/opencode/opencode.json` with its options:
 
-   ```jsonc
+   ```json
    {
      "plugins": [
        {
@@ -56,20 +56,20 @@ For one project only, use `.opencode/plugins/cliproxy/index.ts` and list `./plug
 
 All options are optional.
 
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `baseURL` | `CLIPROXY_BASE_URL`, else `http://127.0.0.1:8317/v1` | The OpenAI-compatible base URL, including `/v1`. Models are read from `<baseURL>/models`. |
-| `apiKey` | `CLIPROXY_API_KEY`, else none | Sent as `Authorization: Bearer <key>` to `/models` and to every model request. |
-| `providerID` | `cliproxy` | The provider id: models are `<providerID>/<model id>`. |
-| `name` | `CLIProxyAPI` | The provider's display name. |
-| `include` | all | Model id patterns to keep. |
-| `exclude` | none | Model id patterns to drop. |
-| `includeOwnedBy` | all | `owned_by` patterns to keep. |
-| `excludeOwnedBy` | none | `owned_by` patterns to drop. |
-| `timeout` | `5000` | Milliseconds to wait for `/models` before giving up. |
-| `api` | `chat` | Wire format for every model: `chat` or `responses`. See [Wire format](#wire-format). |
-| `apiByOwner` | `{}` | Wire format per `owned_by` value, e.g. `{ "openai": "responses" }`. Overrides `api`. |
-| `enrich` | `true` | Copy names, limits and capabilities from OpenCode's model catalog. See [Model metadata](#model-metadata). |
+| Option           | Default                                              | Meaning                                                                                                   |
+| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `baseURL`        | `CLIPROXY_BASE_URL`, else `http://127.0.0.1:8317/v1` | The OpenAI-compatible base URL, including `/v1`. Models are read from `<baseURL>/models`.                 |
+| `apiKey`         | `CLIPROXY_API_KEY`, else none                        | Sent as `Authorization: Bearer <key>` to `/models` and to every model request.                            |
+| `providerID`     | `cliproxy`                                           | The provider id: models are `<providerID>/<model id>`.                                                    |
+| `name`           | `CLIProxyAPI`                                        | The provider's display name.                                                                              |
+| `include`        | all                                                  | Model id patterns to keep.                                                                                |
+| `exclude`        | none                                                 | Model id patterns to drop.                                                                                |
+| `includeOwnedBy` | all                                                  | `owned_by` patterns to keep.                                                                              |
+| `excludeOwnedBy` | none                                                 | `owned_by` patterns to drop.                                                                              |
+| `timeout`        | `5000`                                               | Milliseconds to wait for `/models` before giving up.                                                      |
+| `api`            | `chat`                                               | Wire format for every model: `chat` or `responses`. See [Wire format](#wire-format).                      |
+| `apiByOwner`     | `{}`                                                 | Wire format per `owned_by` value, e.g. `{ "openai": "responses" }`. Overrides `api`.                      |
+| `enrich`         | `true`                                               | Copy names, limits and capabilities from OpenCode's model catalog. See [Model metadata](#model-metadata). |
 
 Patterns are globs: `*` matches any run of characters and `?` matches one. Matching is
 case-sensitive and covers the whole value, so `gpt-*` matches `gpt-5` but not `chatgpt-4o`. A model
@@ -142,9 +142,15 @@ headers of its own.
 ## Development
 
 ```sh
-bun install       # dev-only: type definitions for effect and @opencode/plugin, TypeScript
-bun run check     # typecheck, then all tests
+bun install       # dev-only tooling; also installs the pre-commit hook
+bun run check     # format check and lint, typecheck, then all tests
+bun run fmt       # format everything
 ```
+
+Formatting and linting use [Vite+](https://viteplus.dev) (Oxfmt and Oxlint), configured in
+`vite.config.ts` after [T3 Code](https://github.com/pingdotgg/t3code)'s settings. The pre-commit
+hook in `.vite-hooks/` formats and lints staged files. CI runs the lint, typecheck and test jobs on
+every pull request, the tests against OpenCode 2.2.5.
 
 The tests need `opencode` on `PATH`.
 
@@ -157,3 +163,7 @@ The tests need `opencode` on `PATH`.
 
 Each test runs OpenCode with `--standalone` in a temporary `HOME`, so the tests never touch your
 own OpenCode configuration or a running OpenCode service.
+
+## License
+
+[MIT](LICENSE)
