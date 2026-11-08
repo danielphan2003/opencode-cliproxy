@@ -171,6 +171,10 @@ describe("models", () => {
     const known = { ...toModel(settings, listed("m")), name: "Known M" };
     expect(toModel(settings, { ...listed("m"), display_name: "m" }, known).name).toBe("Known M");
     expect(toModel(settings, { ...listed("m"), display_name: "m" }).name).toBe("m");
+    // A prefixed id's bare name says nothing either; another owner's prefix is not stripped.
+    const prefixed = { ...listed("opencode-go/foo", "opencode-go"), display_name: "foo" };
+    expect(toModel(settings, prefixed, known).name).toBe("Known M");
+    expect(toModel(settings, { ...prefixed, owned_by: "acme" }, known).name).toBe("foo");
   });
 
   test("variants: the listed efforts, else the catalog's variant ids, each setting only the effort", () => {

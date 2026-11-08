@@ -206,11 +206,16 @@ export const toModel = (
   const providerID = Provider.ID.make(settings.providerID);
   const base = Model.Info.default(providerID, Model.ID.make(listed.id));
   const api = apiFor(settings, listed);
-  // A listed name that only repeats the id says nothing; the catalog's is better.
+  // A listed name that only repeats the id, with or without its owner prefix, says nothing; the
+  // catalog's is better.
   const listedName = present(listed.display_name ?? undefined);
+  const prefix = listed.owned_by ? `${listed.owned_by}/` : undefined;
+  const bareID =
+    prefix && listed.id.startsWith(prefix) ? listed.id.slice(prefix.length) : listed.id;
+  const namesNothing = listedName === listed.id || listedName === bareID;
   return {
     ...base,
-    name: (listedName !== listed.id ? listedName : undefined) ?? known?.name ?? listed.id,
+    name: (namesNothing ? undefined : listedName) ?? known?.name ?? listed.id,
     ...(known?.family === undefined ? {} : { family: known.family }),
     ...(api === settings.api ? {} : { package: PACKAGES[api] }),
     capabilities: known?.capabilities ?? base.capabilities,
@@ -230,8 +235,9 @@ export const toModel = (
 
 /**
  * One variant per reasoning effort: the endpoint's own list when it sends one, else the catalog
- * model's variant ids. Each sets only `reasoningEffort`, which the endpoint translates for whatever
- * serves the model, so settings meant for another provider's wire format are not copied.
+ * model's variant ids. Each sets only `reasoningEffort`, which the endpoint maps onto whatever
+ * serves the model, so settings meant for another provider's wire format are not copied. A catalog
+ * effort the endpoint does not support for that model may be lowered or rejected by it.
  */
 export const variantsFor = (listed: ListedModel, known?: Model.Info): Model.Info["variants"] => {
   const efforts = listed.reasoning_efforts ?? known?.variants.map((variant) => variant.id) ?? [];
