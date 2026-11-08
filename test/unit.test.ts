@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { Cause, Effect, Exit, Option, Schema } from "effect";
+import { Model } from "@opencode/plugin/effect";
 import {
   admits,
   apiFor,
@@ -18,6 +19,10 @@ import {
 import { startMock } from "./mock-server.ts";
 
 const listed = (id: string, owned_by?: string): ListedModel => ({ id, owned_by });
+const effort = (id: string) => ({
+  id: Model.VariantID.make(id),
+  settings: { reasoningEffort: id },
+});
 
 describe("options", () => {
   test("defaults apply when nothing is set", () => {
@@ -141,6 +146,57 @@ describe("models", () => {
     expect(findKnown(records, listed("m", "acme"), "cliproxy")?.name).toBe("acme");
     expect(findKnown(records, listed("m", "nobody"), "cliproxy")?.name).toBe("other");
     expect(findKnown(records.slice(0, 1), listed("m"), "cliproxy")).toBeUndefined();
+  });
+
+  test("a prefixed id finds the owner's catalog entry without its prefix", () => {
+    const goSettings = settingsFrom({ providerID: "opencode-go" });
+    const records = [
+      {
+        provider: providerInfo(goSettings),
+        models: new Map([
+          ["gpt-6-luna", { ...toModel(goSettings, listed("gpt-6-luna")), name: "GPT-6 Luna" }],
+        ]),
+      },
+    ];
+    expect(findKnown(records, listed("opencode-go/gpt-6-luna", "opencode-go"), "skid")?.name).toBe(
+      "GPT-6 Luna",
+    );
+    // Only the owner's own prefix is stripped.
+    expect(findKnown(records, listed("other/gpt-6-luna", "opencode-go"), "skid")).toBeUndefined();
+    expect(findKnown(records, listed("opencode-go/gpt-6-luna", "acme"), "skid")).toBeUndefined();
+  });
+
+  test("a listed name that only repeats the id yields to the catalog's", () => {
+    const settings = settingsFrom({});
+    const known = { ...toModel(settings, listed("m")), name: "Known M" };
+    expect(toModel(settings, { ...listed("m"), display_name: "m" }, known).name).toBe("Known M");
+    expect(toModel(settings, { ...listed("m"), display_name: "m" }).name).toBe("m");
+  });
+
+  test("variants: the listed efforts, else the catalog's variant ids, each setting only the effort", () => {
+    const settings = settingsFrom({});
+    const known = {
+      ...toModel(settings, listed("m")),
+      variants: [
+        {
+          id: Model.VariantID.make("low"),
+          settings: { reasoningEffort: "low", reasoningSummary: "auto" },
+        },
+        { id: Model.VariantID.make("xhigh"), settings: { reasoningEffort: "xhigh" } },
+      ],
+    };
+    expect(toModel(settings, listed("m")).variants).toEqual([]);
+    expect(toModel(settings, listed("m"), known).variants).toEqual([
+      effort("low"),
+      effort("xhigh"),
+    ]);
+    expect(
+      toModel(
+        settings,
+        { ...listed("m"), reasoning_efforts: ["low", "high", "max", "high", " "] },
+        known,
+      ).variants,
+    ).toEqual([effort("low"), effort("high"), effort("max")]);
   });
 
   test("the provider carries the base URL and key as provider settings", () => {

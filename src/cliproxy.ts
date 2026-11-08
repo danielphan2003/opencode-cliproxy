@@ -93,7 +93,11 @@ export const settingsFrom = (
 // ---------------------------------------------------------------------------------------------
 // The listing
 
-/** One entry of `GET /models`. CLIProxyAPI sends `id`, `object`, `created` and `owned_by`; the rest is read if present. */
+/**
+ * One entry of `GET /models`. CLIProxyAPI sends `id`, `object`, `created` and `owned_by`; the rest
+ * is read if present. skid also sends the name, limits and, for models whose efforts are set in its
+ * config, `reasoning_efforts`.
+ */
 export const ListedModel = Schema.Struct({
   id: Schema.String,
   owned_by: Schema.optional(Schema.NullOr(Schema.String)),
@@ -101,6 +105,7 @@ export const ListedModel = Schema.Struct({
   display_name: Schema.optional(Schema.NullOr(Schema.String)),
   context_length: Schema.optional(Schema.NullOr(Schema.Int)),
   max_completion_tokens: Schema.optional(Schema.NullOr(Schema.Int)),
+  reasoning_efforts: Schema.optional(Schema.NullOr(Schema.Array(Schema.String))),
 });
 export interface ListedModel extends Schema.Schema.Type<typeof ListedModel> {}
 
@@ -201,9 +206,11 @@ export const toModel = (
   const providerID = Provider.ID.make(settings.providerID);
   const base = Model.Info.default(providerID, Model.ID.make(listed.id));
   const api = apiFor(settings, listed);
+  // A listed name that only repeats the id says nothing; the catalog's is better.
+  const listedName = present(listed.display_name ?? undefined);
   return {
     ...base,
-    name: present(listed.display_name ?? undefined) ?? known?.name ?? listed.id,
+    name: (listedName !== listed.id ? listedName : undefined) ?? known?.name ?? listed.id,
     ...(known?.family === undefined ? {} : { family: known.family }),
     ...(api === settings.api ? {} : { package: PACKAGES[api] }),
     capabilities: known?.capabilities ?? base.capabilities,
@@ -217,7 +224,20 @@ export const toModel = (
       output: listed.max_completion_tokens ?? known?.limit.output ?? base.limit.output,
       ...(known?.limit.input === undefined ? {} : { input: known.limit.input }),
     },
+    variants: variantsFor(listed, known),
   };
+};
+
+/**
+ * One variant per reasoning effort: the endpoint's own list when it sends one, else the catalog
+ * model's variant ids. Each sets only `reasoningEffort`, which the endpoint translates for whatever
+ * serves the model, so settings meant for another provider's wire format are not copied.
+ */
+export const variantsFor = (listed: ListedModel, known?: Model.Info): Model.Info["variants"] => {
+  const efforts = listed.reasoning_efforts ?? known?.variants.map((variant) => variant.id) ?? [];
+  return [...new Set(efforts.map((effort) => effort.trim()).filter((effort) => effort !== ""))].map(
+    (effort) => ({ id: Model.VariantID.make(effort), settings: { reasoningEffort: effort } }),
+  );
 };
 
 /** Finds `modelID` in OpenCode's catalog, preferring the provider named by `owned_by`. */
@@ -230,11 +250,15 @@ export const findKnown = (
   ownProviderID: string,
 ) => {
   const candidates = records.filter((record) => record.provider.id !== ownProviderID);
-  const preferred = candidates
-    .find((record) => record.provider.id === listed.owned_by)
-    ?.models.get(listed.id);
+  const owner = candidates.find((record) => record.provider.id === listed.owned_by);
+  // An endpoint that prefixes a provider's models (`opencode-go/gpt-6-luna`) lists them under
+  // that provider as owner; OpenCode's catalog knows them without the prefix.
+  const prefix = listed.owned_by ? `${listed.owned_by}/` : undefined;
+  const unprefixed =
+    prefix && listed.id.startsWith(prefix) ? listed.id.slice(prefix.length) : undefined;
   return (
-    preferred ??
+    owner?.models.get(listed.id) ??
+    (unprefixed === undefined ? undefined : owner?.models.get(unprefixed)) ??
     candidates.map((record) => record.models.get(listed.id)).find((model) => model !== undefined)
   );
 };
