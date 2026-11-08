@@ -123,7 +123,7 @@ Responses.
 
 **Reasoning efforts** become variants, one per effort, each setting only `reasoningEffort`: the
 listing's `reasoning_efforts` when it sends one (skid does, for models whose efforts are set in its
-config and for OpenCode Go's models), else the variant names of the catalog model. The proxy maps
+config and for OpenCode Go's models whose catalog lists efforts), else the variant names of the catalog model. The proxy maps
 the effort onto whatever serves the model, so the catalog's other variant settings, which belong to
 that provider's own API, are not copied. Neither are costs. A catalog effort the proxy does not
 support for that model may be lowered or rejected by it; a listing with `reasoning_efforts` avoids

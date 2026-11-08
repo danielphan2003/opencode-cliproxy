@@ -96,7 +96,7 @@ export const settingsFrom = (
 /**
  * One entry of `GET /models`. CLIProxyAPI sends `id`, `object`, `created` and `owned_by`; the rest
  * is read if present. skid also sends the name, limits and, for models whose efforts are set in its
- * config, `reasoning_efforts`.
+ * config or listed in OpenCode Go's catalog, `reasoning_efforts`.
  */
 export const ListedModel = Schema.Struct({
   id: Schema.String,
