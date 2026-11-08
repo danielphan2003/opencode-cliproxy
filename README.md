@@ -112,12 +112,22 @@ Responses.
 
 `/models` gives little more than ids. Each model gets:
 
-- `display_name`, `context_length` and `max_completion_tokens` from the listing, when present;
-- otherwise, the name, limits and capabilities of the same model id in OpenCode's built-in catalog
-  (models.dev), preferring the provider named by `owned_by`; set `enrich: false` to skip this;
+- `display_name`, `context_length` and `max_completion_tokens` from the listing, when present (a
+  `display_name` that only repeats the id, with or without its `owned_by` prefix, counts as
+  absent);
+- otherwise, the name, limits and capabilities of the same model in OpenCode's built-in catalog
+  (models.dev), preferring the provider named by `owned_by`. An id prefixed with its owner, as
+  `opencode-go/gpt-6-luna` owned by `opencode-go`, also matches that provider's `gpt-6-luna`. Set
+  `enrich: false` to skip the catalog;
 - otherwise, OpenCode's defaults: a 200,000-token context and 32,000 output tokens.
 
-Costs and variants are not copied: they belong to the upstream provider's own API, not the proxy.
+**Reasoning efforts** become variants, one per effort, each setting only `reasoningEffort`: the
+listing's `reasoning_efforts` when it sends one (skid does, for models whose efforts are set in its
+config and for OpenCode Go's models whose catalog lists efforts), else the variant names of the catalog model. The proxy maps
+the effort onto whatever serves the model, so the catalog's other variant settings, which belong to
+that provider's own API, are not copied. Neither are costs. A catalog effort the proxy does not
+support for that model may be lowered or rejected by it; a listing with `reasoning_efforts` avoids
+that.
 
 ## When the endpoint fails
 
